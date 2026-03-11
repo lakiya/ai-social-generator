@@ -124,7 +124,26 @@ export default function Home() {
   return (
 
     <main className="min-h-screen bg-gradient-to-br from-purple-600 to-indigo-700 text-white">
-
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            name: "AI Social Media Generator",
+            applicationCategory: "AIApplication",
+            operatingSystem: "Web",
+            url: "https://ai-social-generator-omega.vercel.app",
+            description:
+              "Generate viral Instagram, Twitter and LinkedIn posts instantly using AI.",
+            offers: {
+              "@type": "Offer",
+              price: "0",
+              priceCurrency: "USD"
+            }
+          })
+        }}
+      />
       <div className="max-w-4xl mx-auto p-8">
 
         <motion.h1
@@ -142,7 +161,25 @@ export default function Home() {
           Simply enter your topic and our AI will generate
           high-engagement social media content instantly.
         </p>
+        <h2 className="text-2xl font-bold mt-12">
+          Latest Guides
+        </h2>
 
+        <ul>
+
+          <li>
+            <a href="/blog/how-to-write-instagram-captions">
+              How to Write Instagram Captions
+            </a>
+          </li>
+
+          <li>
+            <a href="/blog/best-instagram-caption-ideas">
+              Best Instagram Caption Ideas
+            </a>
+          </li>
+
+        </ul>
         <div className="bg-white text-black rounded-xl p-6 mt-8 shadow-xl">
 
           <input

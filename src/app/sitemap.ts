@@ -1,3 +1,4 @@
+import { blogKeywords } from "@/lib/blogKeywords"
 import { MetadataRoute } from "next"
 
 const baseUrl = "https://ai-social-generator-omega.vercel.app"
@@ -42,6 +43,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
     const routes: MetadataRoute.Sitemap = []
 
+    routes.push({
+        url: `${baseUrl}/blog/how-to-write-instagram-captions`,
+        lastModified: new Date()
+    })
+
+
     // Homepage
     routes.push({
         url: baseUrl,
@@ -64,6 +71,19 @@ export default function sitemap(): MetadataRoute.Sitemap {
             })
 
         })
+    })
+
+    blogKeywords.forEach((keyword) => {
+
+        const slug = keyword.replace(/\s+/g, "-")
+
+        routes.push({
+            url: `${baseUrl}/blog/${slug}`,
+            lastModified: new Date(),
+            changeFrequency: "weekly",
+            priority: 0.7
+        })
+
     })
 
     return routes
