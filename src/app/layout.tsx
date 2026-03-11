@@ -19,6 +19,9 @@ export const metadata: Metadata = {
     url: "https://ai-social-generator-omega.vercel.app",
     siteName: "AI Social Generator",
     type: "website"
+  },
+  verification: {
+    google: "VIAsV40DIY1ShmZLM0AJxwblTVMM5S4qCxm1zHM0sEQ"
   }
 }
 

@@ -137,6 +137,10 @@ export default function Home() {
 
         <p className="opacity-80 mt-2">
           Generate viral social media posts instantly.
+          This AI tool helps you create viral Instagram captions,
+          Twitter posts, LinkedIn updates and trending hashtags in seconds.
+          Simply enter your topic and our AI will generate
+          high-engagement social media content instantly.
         </p>
 
         <div className="bg-white text-black rounded-xl p-6 mt-8 shadow-xl">
