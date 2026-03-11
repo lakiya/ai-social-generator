@@ -6,18 +6,33 @@ const client = new OpenAI({
 })
 
 export async function POST(req) {
+
     try {
 
         const { topic, platform } = await req.json()
 
         const prompt = `
-Write a ${platform} social media post about ${topic}.
+You are a social media expert.
 
-Include:
-Hook
-Caption
-Call to action
-5 hashtags
+Create a HIGH ENGAGEMENT ${platform} post.
+
+Topic: ${topic}
+
+Return the result EXACTLY in this format:
+
+HOOK:
+<viral hook>
+
+CAPTION:
+<caption text>
+
+CTA:
+<call to action>
+
+HASHTAGS:
+<5 hashtags>
+
+Do not add explanations.
 `
 
         const completion = await client.chat.completions.create({
@@ -36,12 +51,11 @@ Call to action
 
     } catch (error) {
 
-        console.error(error)
-
         return Response.json(
             { error: error.message },
             { status: 500 }
         )
 
     }
+
 }
