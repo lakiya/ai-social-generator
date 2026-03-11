@@ -5,7 +5,19 @@ import { useState, useEffect } from "react"
 import { supabase } from "../lib/supabase"
 import type { User } from "@supabase/supabase-js"
 import { motion } from "framer-motion"
-import { Sparkles, Copy, LogOut, User as UserIcon } from "lucide-react"
+import toast from "react-hot-toast"
+import { FaTiktok } from "react-icons/fa"
+import {
+  Sparkles,
+  Copy,
+  LogOut,
+  User as UserIcon,
+  Instagram,
+  Linkedin,
+  Twitter,
+  Facebook,
+  Youtube
+} from "lucide-react"
 
 type Post = {
   id: string
@@ -15,16 +27,30 @@ type Post = {
 }
 
 export default function Home() {
+
   const [topic, setTopic] = useState("")
   const [platform, setPlatform] = useState("Instagram")
+
   const [result, setResult] = useState("")
   const [displayText, setDisplayText] = useState("")
+
   const [loading, setLoading] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   const [user, setUser] = useState<User | null>(null)
   const [history, setHistory] = useState<Post[]>([])
 
+  const platforms = [
+    { name: "Instagram", icon: Instagram },
+    { name: "Twitter", icon: Twitter },
+    { name: "LinkedIn", icon: Linkedin },
+    { name: "Facebook", icon: Facebook },
+    { name: "YouTube", icon: Youtube },
+    { name: "Tiktok", icon: FaTiktok }
+  ]
+
   useEffect(() => {
+
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user)
     })
@@ -37,12 +63,12 @@ export default function Home() {
 
     loadPosts()
 
-    return () => {
-      subscription.unsubscribe()
-    }
+    return () => subscription.unsubscribe()
+
   }, [])
 
   async function loadPosts() {
+
     const { data } = await supabase
       .from("posts")
       .select("*")
@@ -57,13 +83,15 @@ export default function Home() {
   }
 
   async function generatePost() {
-    if (!topic) return
+
+    if (!topic.trim()) return
 
     setLoading(true)
     setDisplayText("")
     setResult("")
 
     try {
+
       const response = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -72,47 +100,64 @@ export default function Home() {
 
       const data = await response.json()
 
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to generate post")
-      }
+      if (!response.ok) throw new Error()
 
-      setResult(data.post)
-      typeText(data.post)
+      const emojiPost =
+        "✨ " +
+        data.post
+          .replace(/HOOK:/, "🔥 HOOK:")
+          .replace(/CAPTION:/, "✍️ CAPTION:")
+          .replace(/CTA:/, "📣 CTA:")
+          .replace(/HASHTAGS:/, "#️⃣ HASHTAGS:")
+
+      setResult(emojiPost)
+
+      typeText(emojiPost)
 
       if (user) {
+
         await supabase.from("posts").insert([
           {
             user_id: user.id,
             topic,
             platform,
-            content: data.post
+            content: emojiPost
           }
         ])
 
         loadPosts()
       }
-    } catch (error) {
-      setDisplayText("Something went wrong while generating the post.")
+
+    } catch {
+
+      setDisplayText("❌ Something went wrong")
+
     } finally {
+
       setLoading(false)
+
     }
   }
 
   function typeText(text: string) {
+
     let index = 0
+
     setDisplayText("")
 
     const interval = setInterval(() => {
-      setDisplayText((prev) => prev + (text[index] ?? ""))
+
+      setDisplayText(prev => prev + (text[index] ?? ""))
+
       index++
 
-      if (index >= text.length) {
-        clearInterval(interval)
-      }
+      if (index >= text.length) clearInterval(interval)
+
     }, 15)
   }
 
   function parsePost(text: string) {
+
     const sections = {
       hook: "",
       caption: "",
@@ -133,197 +178,200 @@ export default function Home() {
     return sections
   }
 
+  async function copyPost() {
+
+    await navigator.clipboard.writeText(result)
+
+    toast.success("Copied 🎉")
+
+    setCopied(true)
+
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  function renderShareButtons() {
+
+    const text = encodeURIComponent(result)
+
+    if (platform === "Twitter") {
+      return (
+        <a
+          href={`https://twitter.com/intent/tweet?text=${text}`}
+          target="_blank"
+          className="bg-black text-white px-4 py-2 rounded-lg"
+        >
+          Share on Twitter 🐦
+        </a>
+      )
+    }
+
+    if (platform === "LinkedIn") {
+      return (
+        <a
+          href={`https://www.linkedin.com/sharing/share-offsite/?url=${text}`}
+          target="_blank"
+          className="bg-blue-700 text-white px-4 py-2 rounded-lg"
+        >
+          Share on LinkedIn 💼
+        </a>
+      )
+    }
+
+    if (platform === "Facebook") {
+      return (
+        <a
+          href={`https://www.facebook.com/sharer/sharer.php?u=${text}`}
+          target="_blank"
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg"
+        >
+          Share on Facebook 👍
+        </a>
+      )
+    }
+
+    return (
+      <p className="text-sm opacity-70">
+        Copy and paste this post to share on {platform}
+      </p>
+    )
+  }
+
   return (
+
     <main className="min-h-screen bg-gradient-to-br from-purple-600 to-indigo-700 text-white">
-      <div className="max-w-5xl mx-auto p-6 md:p-8">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-3xl md:text-4xl font-bold flex items-center gap-3"
-          >
-            <Sparkles />
-            AI Social Media Generator
-          </motion.h1>
+
+      <div className="max-w-6xl mx-auto p-6">
+
+        <div className="flex justify-between items-center mb-6">
+
+          <h1 className="text-4xl font-bold flex items-center gap-2">
+            <Sparkles /> AI Social Post Generator
+          </h1>
 
           {user ? (
-            <div className="flex items-center gap-3 bg-white/10 backdrop-blur rounded-xl px-4 py-2">
+
+            <div className="flex items-center gap-3">
+
               <UserIcon size={18} />
-              <span className="text-sm md:text-base">{user.email}</span>
+
+              {user.email}
+
               <button
                 onClick={logout}
-                className="inline-flex items-center gap-2 bg-white text-indigo-700 px-3 py-2 rounded-lg font-medium hover:bg-gray-100 transition"
+                className="bg-white text-indigo-700 px-3 py-2 rounded-lg"
               >
-                <LogOut size={16} />
                 Logout
               </button>
+
             </div>
+
           ) : (
+
             <Link
               href="/login"
-              className="inline-flex items-center justify-center bg-white text-indigo-700 px-4 py-3 rounded-xl font-semibold hover:bg-gray-100 transition"
+              className="bg-white text-indigo-700 px-4 py-2 rounded-lg"
             >
-              Login / Sign Up
+              Login
             </Link>
+
           )}
+
         </div>
 
-        <p className="opacity-85 mt-3 max-w-2xl">
-          Generate viral social media posts instantly with hooks, captions, CTAs,
-          and hashtags.
-        </p>
+        <div className="grid lg:grid-cols-2 gap-8">
 
-        <div className="grid lg:grid-cols-3 gap-8 mt-8">
-          <div className="lg:col-span-2 bg-white text-black rounded-2xl shadow-2xl p-6">
-            <h2 className="text-2xl font-bold mb-5">Create Post</h2>
+          <div className="bg-white text-black p-6 rounded-2xl">
 
-            <input
-              className="w-full border p-3 rounded-xl mb-4 outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="Enter topic..."
+            <h2 className="text-2xl font-bold mb-4">
+              ✏️ Create Post
+            </h2>
+
+            <textarea
+              rows={4}
+              className="w-full border p-3 rounded-xl mb-4"
+              placeholder="Describe your idea..."
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
             />
 
-            <div className="flex gap-2 mb-4 flex-wrap">
-              {["Instagram", "Twitter", "LinkedIn"].map((item) => (
-                <button
-                  key={item}
-                  onClick={() => setPlatform(item)}
-                  className={`px-4 py-2 rounded-xl border transition ${platform === item
-                      ? "bg-indigo-600 text-white border-indigo-600"
-                      : "bg-white text-black border-gray-300 hover:bg-gray-50"
-                    }`}
-                >
-                  {item}
-                </button>
-              ))}
+            <div className="flex gap-2 flex-wrap mb-4">
+
+              {platforms.map(item => {
+
+                const Icon = item.icon
+
+                return (
+                  <button
+                    key={item.name}
+                    onClick={() => setPlatform(item.name)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl border ${platform === item.name
+                      ? "bg-indigo-600 text-white"
+                      : "bg-white"
+                      }`}
+                  >
+                    <Icon size={16} />
+                    {item.name}
+                  </button>
+                )
+              })}
+
             </div>
 
             <button
               onClick={generatePost}
-              disabled={loading || !topic.trim()}
-              className="w-full bg-indigo-600 text-white p-3 rounded-xl font-semibold hover:bg-indigo-700 transition disabled:opacity-50"
+              disabled={loading}
+              className="w-full bg-indigo-600 text-white p-3 rounded-xl"
             >
-              {loading ? "Generating..." : "Generate Post"}
+              {loading ? "Generating..." : "Generate Post 🚀"}
             </button>
 
-            {loading && (
-              <div className="mt-6 space-y-4 animate-pulse">
-                <div className="bg-orange-100 rounded-xl h-20" />
-                <div className="bg-blue-100 rounded-xl h-28" />
-                <div className="bg-green-100 rounded-xl h-20" />
-                <div className="bg-purple-100 rounded-xl h-20" />
-              </div>
-            )}
+          </div>
+
+          {/* SOCIAL MEDIA PREVIEW */}
+
+          <div className="bg-white text-black p-6 rounded-2xl">
+
+            <h2 className="text-xl font-bold mb-4">
+              📱 Social Preview
+            </h2>
+
+            <div className="border rounded-xl p-4 shadow">
+
+              <p className="text-sm text-gray-500 mb-2">
+                {platform} Post Preview
+              </p>
+
+              <p className="whitespace-pre-line">
+                {displayText || "Your generated post will appear here..."}
+                {loading && <span className="animate-pulse">|</span>}
+              </p>
+
+            </div>
 
             {displayText && !loading && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="mt-6"
-              >
-                {(() => {
-                  const post = parsePost(displayText)
 
-                  return (
-                    <div className="space-y-4">
-                      <div className="bg-orange-100 p-4 rounded-xl">
-                        <h3 className="font-semibold mb-1">🔥 Viral Hook</h3>
-                        <p>{post.hook}</p>
-                      </div>
-
-                      <div className="bg-blue-100 p-4 rounded-xl">
-                        <h3 className="font-semibold mb-1">✍️ Caption</h3>
-                        <p>{post.caption}</p>
-                      </div>
-
-                      <div className="bg-green-100 p-4 rounded-xl">
-                        <h3 className="font-semibold mb-1">📣 Call to Action</h3>
-                        <p>{post.cta}</p>
-                      </div>
-
-                      <div className="bg-purple-100 p-4 rounded-xl">
-                        <h3 className="font-semibold mb-1">#️⃣ Hashtags</h3>
-                        <p>{post.hashtags}</p>
-                      </div>
-                    </div>
-                  )
-                })()}
+              <div className="mt-4 space-y-3">
 
                 <button
-                  className="flex items-center gap-2 mt-4 text-indigo-600 font-medium"
-                  onClick={() => navigator.clipboard.writeText(result)}
+                  onClick={copyPost}
+                  className="flex items-center gap-2 text-indigo-600"
                 >
                   <Copy size={16} />
-                  Copy Post
+                  {copied ? "Copied ✅" : "Copy"}
                 </button>
-              </motion.div>
+
+                {renderShareButtons()}
+
+              </div>
+
             )}
+
           </div>
 
-          <div className="bg-white/10 backdrop-blur rounded-2xl p-6">
-            <h2 className="text-2xl font-bold mb-4">Your History</h2>
-
-            {!user && (
-              <div className="bg-white/10 rounded-xl p-4 text-sm">
-                Log in to save and view your generated posts.
-              </div>
-            )}
-
-            {user && history.length === 0 && (
-              <div className="bg-white/10 rounded-xl p-4 text-sm">
-                No saved posts yet.
-              </div>
-            )}
-
-            <div className="space-y-4 max-h-[600px] overflow-auto pr-1">
-              {user &&
-                history.map((post) => (
-                  <div key={post.id} className="bg-white text-black p-4 rounded-xl">
-                    <h4 className="font-bold">{post.topic}</h4>
-                    <p className="text-sm text-gray-700 mt-2 line-clamp-5">
-                      {post.content}
-                    </p>
-                  </div>
-                ))}
-            </div>
-          </div>
         </div>
 
-        <div className="mt-12 bg-white/10 backdrop-blur rounded-2xl p-6">
-          <h2 className="text-2xl font-bold mb-4">Popular AI Tools</h2>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <Link
-              href="/generator/ai-instagram-caption-generator"
-              className="bg-white/10 rounded-xl p-4 hover:bg-white/20 transition"
-            >
-              AI Instagram Caption Generator
-            </Link>
-
-            <Link
-              href="/generator/ai-twitter-post-generator"
-              className="bg-white/10 rounded-xl p-4 hover:bg-white/20 transition"
-            >
-              AI Twitter Post Generator
-            </Link>
-
-            <Link
-              href="/generator/ai-linkedin-post-generator"
-              className="bg-white/10 rounded-xl p-4 hover:bg-white/20 transition"
-            >
-              AI LinkedIn Post Generator
-            </Link>
-
-            <Link
-              href="/generator/ai-youtube-description-generator"
-              className="bg-white/10 rounded-xl p-4 hover:bg-white/20 transition"
-            >
-              AI YouTube Description Generator
-            </Link>
-          </div>
-        </div>
       </div>
+
     </main>
   )
 }

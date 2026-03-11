@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import "./globals.css"
+import { Toaster } from "react-hot-toast"
 
 export const metadata: Metadata = {
   title: "AI Social Media Post Generator",
@@ -47,7 +48,9 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body>{children}</body>
+      <body>{children}
+        <Toaster position="top-center" />
+      </body>
     </html>
   )
 }
