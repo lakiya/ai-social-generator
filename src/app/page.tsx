@@ -4,13 +4,13 @@ import Link from "next/link"
 import { useState, useEffect } from "react"
 import { supabase } from "../lib/supabase"
 import type { User } from "@supabase/supabase-js"
-import { motion } from "framer-motion"
 import toast from "react-hot-toast"
+
 import { FaTiktok } from "react-icons/fa"
+
 import {
   Sparkles,
   Copy,
-  LogOut,
   User as UserIcon,
   Instagram,
   Linkedin,
@@ -18,13 +18,6 @@ import {
   Facebook,
   Youtube
 } from "lucide-react"
-
-type Post = {
-  id: string
-  topic: string
-  platform: string
-  content: string
-}
 
 export default function Home() {
 
@@ -38,7 +31,6 @@ export default function Home() {
   const [copied, setCopied] = useState(false)
 
   const [user, setUser] = useState<User | null>(null)
-  const [history, setHistory] = useState<Post[]>([])
 
   const platforms = [
     { name: "Instagram", icon: Instagram },
@@ -55,36 +47,20 @@ export default function Home() {
       setUser(data.user)
     })
 
-    const {
-      data: { subscription }
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((_e, session) => {
       setUser(session?.user ?? null)
     })
 
-    loadPosts()
-
-    return () => subscription.unsubscribe()
+    return () => listener.subscription.unsubscribe()
 
   }, [])
 
-  async function loadPosts() {
-
-    const { data } = await supabase
-      .from("posts")
-      .select("*")
-      .order("created_at", { ascending: false })
-
-    setHistory((data as Post[]) || [])
-  }
-
-  async function logout() {
-    await supabase.auth.signOut()
-    setUser(null)
-  }
-
   async function generatePost() {
 
-    if (!topic.trim()) return
+    if (!topic.trim()) {
+      toast.error("Please enter a topic")
+      return
+    }
 
     setLoading(true)
     setDisplayText("")
@@ -92,57 +68,56 @@ export default function Home() {
 
     try {
 
-      const response = await fetch("/api/generate", {
+      const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic, platform })
+        body: JSON.stringify({
+          topic,
+          platform,
+          user_id: user?.id
+        })
       })
 
-      const data = await response.json()
+      const data = await res.json()
 
-      if (!response.ok) throw new Error()
+      if (!res.ok) {
+        toast.error(data.error || "Generation failed")
+        setLoading(false)
+        return
+      }
 
-      const emojiPost =
+      let referral = "https://ai-social-generator-omega.vercel.app"
+
+      if (user) {
+        referral += `?ref=${user.id}`
+      }
+
+      const formatted =
         "✨ " +
         data.post
           .replace(/HOOK:/, "🔥 HOOK:")
           .replace(/CAPTION:/, "✍️ CAPTION:")
           .replace(/CTA:/, "📣 CTA:")
-          .replace(/HASHTAGS:/, "#️⃣ HASHTAGS:")
+          .replace(/HASHTAGS:/, "#️⃣ HASHTAGS:") +
+        `\n\n✨ Generated with AI Social Generator\n${referral}`
 
-      setResult(emojiPost)
+      setResult(formatted)
 
-      typeText(emojiPost)
-
-      if (user) {
-
-        await supabase.from("posts").insert([
-          {
-            user_id: user.id,
-            topic,
-            platform,
-            content: emojiPost
-          }
-        ])
-
-        loadPosts()
-      }
+      typeText(formatted)
 
     } catch {
 
-      setDisplayText("❌ Something went wrong")
-
-    } finally {
-
-      setLoading(false)
+      toast.error("Something went wrong")
 
     }
+
+    setLoading(false)
+
   }
 
   function typeText(text: string) {
 
     let index = 0
-
     setDisplayText("")
 
     const interval = setInterval(() => {
@@ -154,98 +129,46 @@ export default function Home() {
       if (index >= text.length) clearInterval(interval)
 
     }, 15)
-  }
 
-  function parsePost(text: string) {
-
-    const sections = {
-      hook: "",
-      caption: "",
-      cta: "",
-      hashtags: ""
-    }
-
-    const hookMatch = text.match(/HOOK:([\s\S]*?)CAPTION:/)
-    const captionMatch = text.match(/CAPTION:([\s\S]*?)CTA:/)
-    const ctaMatch = text.match(/CTA:([\s\S]*?)HASHTAGS:/)
-    const hashtagMatch = text.match(/HASHTAGS:([\s\S]*)/)
-
-    if (hookMatch) sections.hook = hookMatch[1].trim()
-    if (captionMatch) sections.caption = captionMatch[1].trim()
-    if (ctaMatch) sections.cta = ctaMatch[1].trim()
-    if (hashtagMatch) sections.hashtags = hashtagMatch[1].trim()
-
-    return sections
   }
 
   async function copyPost() {
 
     await navigator.clipboard.writeText(result)
 
-    toast.success("Copied 🎉")
+    toast.success("Copied!")
 
     setCopied(true)
 
     setTimeout(() => setCopied(false), 2000)
+
   }
 
-  function renderShareButtons() {
+  async function subscribe() {
 
-    const text = encodeURIComponent(result)
-
-    if (platform === "Twitter") {
-      return (
-        <a
-          href={`https://twitter.com/intent/tweet?text=${text}`}
-          target="_blank"
-          className="bg-black text-white px-4 py-2 rounded-lg"
-        >
-          Share on Twitter 🐦
-        </a>
-      )
+    if (!user) {
+      window.location.href = "/login"
+      return
     }
 
-    if (platform === "LinkedIn") {
-      return (
-        <a
-          href={`https://www.linkedin.com/sharing/share-offsite/?url=${text}`}
-          target="_blank"
-          className="bg-blue-700 text-white px-4 py-2 rounded-lg"
-        >
-          Share on LinkedIn 💼
-        </a>
-      )
-    }
+    const url =
+      "https://aisocialgenerator.lemonsqueezy.com/checkout/buy/4cd4af3d-264f-43ad-9477-78fdfe0c17a3" +
+      `?checkout[custom][user_id]=${user.id}`
 
-    if (platform === "Facebook") {
-      return (
-        <a
-          href={`https://www.facebook.com/sharer/sharer.php?u=${text}`}
-          target="_blank"
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg"
-        >
-          Share on Facebook 👍
-        </a>
-      )
-    }
+    window.location.href = url
 
-    return (
-      <p className="text-sm opacity-70">
-        Copy and paste this post to share on {platform}
-      </p>
-    )
   }
 
   return (
 
     <main className="min-h-screen bg-gradient-to-br from-purple-600 to-indigo-700 text-white">
 
-      <div className="max-w-6xl mx-auto p-6">
+      <div className="max-w-5xl mx-auto p-6">
 
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-center mb-8">
 
           <h1 className="text-4xl font-bold flex items-center gap-2">
-            <Sparkles /> AI Social Post Generator
+            <Sparkles /> AI Social Generator
           </h1>
 
           {user ? (
@@ -257,7 +180,7 @@ export default function Home() {
               {user.email}
 
               <button
-                onClick={logout}
+                onClick={() => supabase.auth.signOut()}
                 className="bg-white text-indigo-700 px-3 py-2 rounded-lg"
               >
                 Logout
@@ -276,15 +199,18 @@ export default function Home() {
 
           )}
 
+          <button
+            onClick={subscribe}
+            className="bg-yellow-400 text-black px-4 py-2 rounded-lg"
+          >
+            Upgrade to Pro 🚀
+          </button>
+
         </div>
 
         <div className="grid lg:grid-cols-2 gap-8">
 
           <div className="bg-white text-black p-6 rounded-2xl">
-
-            <h2 className="text-2xl font-bold mb-4">
-              ✏️ Create Post
-            </h2>
 
             <textarea
               rows={4}
@@ -296,23 +222,27 @@ export default function Home() {
 
             <div className="flex gap-2 flex-wrap mb-4">
 
-              {platforms.map(item => {
+              {platforms.map(p => {
 
-                const Icon = item.icon
+                const Icon = p.icon
 
                 return (
+
                   <button
-                    key={item.name}
-                    onClick={() => setPlatform(item.name)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-xl border ${platform === item.name
-                      ? "bg-indigo-600 text-white"
-                      : "bg-white"
+                    key={p.name}
+                    onClick={() => setPlatform(p.name)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl border ${platform === p.name
+                        ? "bg-indigo-600 text-white"
+                        : "bg-white"
                       }`}
                   >
                     <Icon size={16} />
-                    {item.name}
+                    {p.name}
+
                   </button>
+
                 )
+
               })}
 
             </div>
@@ -327,40 +257,35 @@ export default function Home() {
 
           </div>
 
-          {/* SOCIAL MEDIA PREVIEW */}
-
           <div className="bg-white text-black p-6 rounded-2xl">
 
             <h2 className="text-xl font-bold mb-4">
-              📱 Social Preview
+              Social Preview
             </h2>
 
             <div className="border rounded-xl p-4 shadow">
 
-              <p className="text-sm text-gray-500 mb-2">
-                {platform} Post Preview
-              </p>
-
               <p className="whitespace-pre-line">
+
                 {displayText || "Your generated post will appear here..."}
+
                 {loading && <span className="animate-pulse">|</span>}
+
               </p>
 
             </div>
 
             {displayText && !loading && (
 
-              <div className="mt-4 space-y-3">
+              <div className="mt-4">
 
                 <button
                   onClick={copyPost}
                   className="flex items-center gap-2 text-indigo-600"
                 >
                   <Copy size={16} />
-                  {copied ? "Copied ✅" : "Copy"}
+                  {copied ? "Copied" : "Copy"}
                 </button>
-
-                {renderShareButtons()}
 
               </div>
 
@@ -373,5 +298,7 @@ export default function Home() {
       </div>
 
     </main>
+
   )
+
 }
