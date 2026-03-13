@@ -1,6 +1,9 @@
 import type { Metadata } from "next"
 import "./globals.css"
 import { Toaster } from "react-hot-toast"
+import { Inter } from "next/font/google"
+
+const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "AI Social Media Post Generator",
@@ -48,7 +51,8 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body>{children}
+      <body className={`${inter.className} antialiased`}>
+        {children}
         <Toaster position="top-center" />
       </body>
     </html>

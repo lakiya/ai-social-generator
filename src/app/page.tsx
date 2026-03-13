@@ -31,6 +31,7 @@ export default function Home() {
   const [copied, setCopied] = useState(false)
 
   const [user, setUser] = useState<User | null>(null)
+  const [limitReached, setLimitReached] = useState(false)
 
   const platforms = [
     { name: "Instagram", icon: Instagram },
@@ -65,6 +66,7 @@ export default function Home() {
     setLoading(true)
     setDisplayText("")
     setResult("")
+    setLimitReached(false)
 
     try {
 
@@ -80,26 +82,24 @@ export default function Home() {
 
       const data = await res.json()
 
+      if (res.status === 403) {
+        setLimitReached(true)
+        setLoading(false)
+        return
+      }
+
       if (!res.ok) {
         toast.error(data.error || "Generation failed")
         setLoading(false)
         return
       }
 
-      let referral = "https://ai-social-generator-omega.vercel.app"
-
-      if (user) {
-        referral += `?ref=${user.id}`
-      }
-
       const formatted =
-        "✨ " +
         data.post
           .replace(/HOOK:/, "🔥 HOOK:")
           .replace(/CAPTION:/, "✍️ CAPTION:")
           .replace(/CTA:/, "📣 CTA:")
-          .replace(/HASHTAGS:/, "#️⃣ HASHTAGS:") +
-        `\n\n✨ Generated with AI Social Generator\n${referral}`
+          .replace(/HASHTAGS:/, "#️⃣ HASHTAGS:")
 
       setResult(formatted)
 
@@ -161,135 +161,176 @@ export default function Home() {
 
   return (
 
-    <main className="min-h-screen bg-gradient-to-br from-purple-600 to-indigo-700 text-white">
+    <main className="relative min-h-screen flex items-center justify-center px-6 bg-gradient-to-br from-indigo-950 via-purple-900 to-slate-950">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[-200px] left-[-200px] w-[500px] h-[500px] bg-purple-500/20 blur-[120px] rounded-full"></div>
+        <div className="absolute bottom-[-200px] right-[-200px] w-[500px] h-[500px] bg-indigo-500/20 blur-[120px] rounded-full"></div>
+      </div>
+      <div className="w-full max-w-5xl">
 
-      <div className="max-w-5xl mx-auto p-6">
+        {/* HEADER */}
 
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex justify-between items-center mb-12">
 
-          <h1 className="text-4xl font-bold flex items-center gap-2">
-            <Sparkles /> AI Social Generator
+          <h1 className="text-2xl font-semibold flex items-center gap-2 text-white">
+            <Sparkles className="text-yellow-400" />
+            AI Social Generator
           </h1>
 
-          {user ? (
+          <div className="flex items-center gap-4">
 
-            <div className="flex items-center gap-3">
+            {user ? (
 
-              <UserIcon size={18} />
+              <div className="flex items-center gap-2 text-sm text-gray-300">
 
-              {user.email}
+                <UserIcon size={18} />
 
-              <button
-                onClick={() => supabase.auth.signOut()}
-                className="bg-white text-indigo-700 px-3 py-2 rounded-lg"
-              >
-                Logout
-              </button>
-
-            </div>
-
-          ) : (
-
-            <Link
-              href="/login"
-              className="bg-white text-indigo-700 px-4 py-2 rounded-lg"
-            >
-              Login
-            </Link>
-
-          )}
-
-          <button
-            onClick={subscribe}
-            className="bg-yellow-400 text-black px-4 py-2 rounded-lg"
-          >
-            Upgrade to Pro 🚀
-          </button>
-
-        </div>
-
-        <div className="grid lg:grid-cols-2 gap-8">
-
-          <div className="bg-white text-black p-6 rounded-2xl">
-
-            <textarea
-              rows={4}
-              className="w-full border p-3 rounded-xl mb-4"
-              placeholder="Describe your idea..."
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-            />
-
-            <div className="flex gap-2 flex-wrap mb-4">
-
-              {platforms.map(p => {
-
-                const Icon = p.icon
-
-                return (
-
-                  <button
-                    key={p.name}
-                    onClick={() => setPlatform(p.name)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-xl border ${platform === p.name
-                        ? "bg-indigo-600 text-white"
-                        : "bg-white"
-                      }`}
-                  >
-                    <Icon size={16} />
-                    {p.name}
-
-                  </button>
-
-                )
-
-              })}
-
-            </div>
-
-            <button
-              onClick={generatePost}
-              disabled={loading}
-              className="w-full bg-indigo-600 text-white p-3 rounded-xl"
-            >
-              {loading ? "Generating..." : "Generate Post 🚀"}
-            </button>
-
-          </div>
-
-          <div className="bg-white text-black p-6 rounded-2xl">
-
-            <h2 className="text-xl font-bold mb-4">
-              Social Preview
-            </h2>
-
-            <div className="border rounded-xl p-4 shadow">
-
-              <p className="whitespace-pre-line">
-
-                {displayText || "Your generated post will appear here..."}
-
-                {loading && <span className="animate-pulse">|</span>}
-
-              </p>
-
-            </div>
-
-            {displayText && !loading && (
-
-              <div className="mt-4">
+                {user.email}
 
                 <button
-                  onClick={copyPost}
-                  className="flex items-center gap-2 text-indigo-600"
+                  onClick={() => supabase.auth.signOut()}
+                  className="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 transition"
                 >
-                  <Copy size={16} />
-                  {copied ? "Copied" : "Copy"}
+                  Logout
                 </button>
 
               </div>
 
+            ) : (
+
+              <Link
+                href="/login"
+                className="text-indigo-300 hover:text-white"
+              >
+                Login
+              </Link>
+
             )}
+
+            <button
+              onClick={subscribe}
+              className="bg-yellow-400 text-black px-4 py-2 rounded-lg font-semibold hover:bg-yellow-300 transition"
+            >
+              Upgrade 🚀
+            </button>
+
+          </div>
+
+        </div>
+
+        {/* MAIN CARD */}
+
+        <div className="bg-white/10 border border-white/20 backdrop-blur-2xl rounded-3xl p-8 shadow-[0_20px_80px_rgba(0,0,0,0.45)]">
+
+          <div className="grid lg:grid-cols-2 gap-8">
+
+            {/* INPUT */}
+
+            <div>
+
+              <textarea
+                rows={4}
+                className="w-full bg-white/90 text-black p-4 rounded-xl mb-4 focus:outline-none shadow-inner"
+                placeholder="Describe your idea..."
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+              />
+
+              <div className="flex flex-wrap gap-2 mb-4">
+
+                {platforms.map(p => {
+
+                  const Icon = p.icon
+
+                  return (
+
+                    <button
+                      key={p.name}
+                      onClick={() => setPlatform(p.name)}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-sm transition ${platform === p.name
+                        ? "bg-indigo-500 text-white border-indigo-500"
+                        : "bg-white/10 border-white/20 hover:bg-white/20"
+                        }`}
+                    >
+                      <Icon size={16} />
+                      {p.name}
+
+                    </button>
+
+                  )
+
+                })}
+
+              </div>
+
+              <button
+                onClick={generatePost}
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 hover:opacity-90 text-white p-3 rounded-xl font-semibold transition shadow-lg"
+              >
+                {loading ? "Generating..." : "Generate Post 🚀"}
+              </button>
+
+            </div>
+
+            {/* OUTPUT */}
+
+            <div>
+
+              <div className="bg-white text-black rounded-xl p-5 min-h-[220px] shadow-inner border">
+
+                {limitReached ? (
+
+                  <div className="text-center space-y-4">
+
+                    <h3 className="text-xl font-bold">
+                      ⚡ Free limit reached
+                    </h3>
+
+                    <p className="text-gray-600">
+                      Upgrade to Pro for unlimited posts.
+                    </p>
+
+                    <button
+                      onClick={subscribe}
+                      className="bg-indigo-600 text-white px-6 py-3 rounded-lg"
+                    >
+                      Upgrade 🚀
+                    </button>
+
+                  </div>
+
+                ) : (
+
+                  <p className="whitespace-pre-line text-sm">
+
+                    {displayText || "Your generated post will appear here..."}
+
+                    {loading && <span className="animate-pulse">|</span>}
+
+                  </p>
+
+                )}
+
+              </div>
+
+              {displayText && !loading && !limitReached && (
+
+                <div className="mt-4">
+
+                  <button
+                    onClick={copyPost}
+                    className="flex items-center gap-2 bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition"
+                  >
+                    <Copy size={16} />
+                    {copied ? "Copied!" : "Copy"}
+                  </button>
+
+                </div>
+
+              )}
+
+            </div>
 
           </div>
 

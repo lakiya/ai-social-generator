@@ -28,6 +28,7 @@ export async function POST(req) {
     try {
 
         const ip = req.headers.get("x-forwarded-for") ?? "anonymous"
+
         const body = await req.json()
 
         const topic = body.topic?.trim()
@@ -35,11 +36,17 @@ export async function POST(req) {
         const user_id = body.user_id || null
 
         if (!topic) {
-            return Response.json({ error: "Please enter a topic." }, { status: 400 })
+            return Response.json(
+                { error: "Please enter a topic." },
+                { status: 400 }
+            )
         }
 
         if (!platform) {
-            return Response.json({ error: "Please select a platform." }, { status: 400 })
+            return Response.json(
+                { error: "Please select a platform." },
+                { status: 400 }
+            )
         }
 
         const identifier = user_id || ip
@@ -55,45 +62,82 @@ export async function POST(req) {
 
         const cacheKey = `post:${platform}:${topic.toLowerCase()}`
 
+        // FAST CACHE CHECK
         const cached = await redis.get(cacheKey)
 
         if (cached) {
+
             return Response.json({
                 post: cached,
                 cached: true
             })
+
+        }
+
+        // SECONDARY CACHE (DATABASE)
+        const { data: dbCache } = await supabase
+            .from("ai_cache")
+            .select("result")
+            .eq("topic", topic)
+            .eq("platform", platform)
+            .limit(1)
+            .single()
+
+        if (dbCache?.result) {
+
+            await redis.set(cacheKey, dbCache.result, { ex: 3600 })
+
+            return Response.json({
+                post: dbCache.result,
+                cached: true
+            })
+
         }
 
         const prompt = `
-You are a social media growth expert.
+You are a world-class social media growth expert.
 
-Create a HIGH ENGAGEMENT ${platform} post.
+Platform: ${platform}
 
 Topic: ${topic}
+
+Create a HIGHLY VIRAL social media post.
+
+Use:
+- curiosity
+- emotional triggers
+- short sentences
+- strong hook
 
 Return EXACTLY this format:
 
 HOOK:
-<viral hook>
+<scroll stopping hook>
 
 CAPTION:
-<caption text>
+<engaging caption>
 
 CTA:
-<call to action>
+<comment trigger>
 
 HASHTAGS:
-<5 hashtags>
+<5 relevant hashtags>
 `
 
         const completion = await ai.chat.completions.create({
             model: "llama-3.3-70b-versatile",
-            messages: [{ role: "user", content: prompt }],
-            temperature: 0.7
+            messages: [
+                {
+                    role: "user",
+                    content: prompt
+                }
+            ],
+            temperature: 0.9
         })
 
         const result = completion.choices[0].message.content
 
+        // SAVE CACHE
         await redis.set(cacheKey, result, { ex: 3600 })
 
         await supabase.from("ai_cache").insert({
@@ -101,6 +145,18 @@ HASHTAGS:
             platform,
             result
         })
+
+        // SAVE USER POST HISTORY
+        if (user_id) {
+
+            await supabase.from("posts").insert({
+                user_id,
+                topic,
+                platform,
+                content: result
+            })
+
+        }
 
         return Response.json({
             post: result,
@@ -112,7 +168,7 @@ HASHTAGS:
         console.error(error)
 
         return Response.json(
-            { error: "Failed to generate post. Please try again." },
+            { error: "AI generation failed. Please try again." },
             { status: 500 }
         )
 
