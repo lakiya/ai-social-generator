@@ -29,12 +29,14 @@ async function saveUserPost(user_id, topic, platform, content) {
 
     try {
 
-        await supabase.from("posts").insert({
+        const { data, error } = await supabase.from("posts").insert({
             user_id,
             topic,
             platform,
             content
         })
+
+        if (error) console.error(error)
 
     } catch (err) {
 
