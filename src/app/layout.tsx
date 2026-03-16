@@ -3,7 +3,7 @@ import "./globals.css"
 import { Toaster } from "react-hot-toast"
 import { Inter } from "next/font/google"
 import { Link } from "lucide-react"
-
+import { SpeedInsights } from "@vercel/speed-insights/next"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
@@ -74,7 +74,7 @@ export default function RootLayout({
       </head>
 
       <body className={`${inter.className} bg-[#0f172a] antialiased`}>
-
+        <SpeedInsights />
         {children}
 
         <Toaster position="top-center" />
