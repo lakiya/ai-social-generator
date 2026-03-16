@@ -39,6 +39,8 @@ const tools = [
     "tagline-generator"
 ]
 
+
+
 export default function sitemap(): MetadataRoute.Sitemap {
 
     const routes: MetadataRoute.Sitemap = []
@@ -58,6 +60,19 @@ export default function sitemap(): MetadataRoute.Sitemap {
     })
 
     // Generator pages
+    const niches = [
+        "business",
+        "fitness",
+        "travel",
+        "fashion",
+        "food",
+        "marketing",
+        "real-estate",
+        "coaches",
+        "influencers",
+        "startups"
+    ]
+
     platforms.forEach((platform) => {
         tools.forEach((tool) => {
 
@@ -68,6 +83,19 @@ export default function sitemap(): MetadataRoute.Sitemap {
                 lastModified: new Date(),
                 changeFrequency: "weekly",
                 priority: 0.7
+            })
+
+            niches.forEach((niche) => {
+
+                const nicheSlug = `ai-${platform}-${tool}-for-${niche}`
+
+                routes.push({
+                    url: `${baseUrl}/generator/${nicheSlug}`,
+                    lastModified: new Date(),
+                    changeFrequency: "weekly",
+                    priority: 0.6
+                })
+
             })
 
         })

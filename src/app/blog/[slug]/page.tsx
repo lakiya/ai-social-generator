@@ -17,7 +17,7 @@ export async function generateStaticParams() {
 export async function generateMetadata({
     params
 }: {
-    params: Promise<{ slug: string }>
+    params: { slug: string }
 }): Promise<Metadata> {
 
     const { slug } = await params
@@ -27,7 +27,24 @@ export async function generateMetadata({
     return {
         title: `${keyword} | AI Social Media Guide`,
         description:
-            `Learn about ${keyword} and how AI can help generate better social media posts.`
+            `Learn about ${keyword} and how AI can help generate better social media posts.`,
+        alternates: {
+            canonical: `https://ai-social-generator-omega.vercel.app/blog/${slug}`
+        },
+        openGraph: {
+            title: `${keyword} | AI Social Media Guide`,
+            description:
+                `Learn about ${keyword} and how AI can help generate better social media posts.`,
+            url: `https://ai-social-generator-omega.vercel.app/blog/${slug}`,
+            type: "article",
+            images: [
+                {
+                    url: "https://ai-social-generator-omega.vercel.app/og.png",
+                    width: 1200,
+                    height: 630
+                }
+            ]
+        }
     }
 
 }
@@ -35,7 +52,7 @@ export async function generateMetadata({
 export default async function BlogPage({
     params
 }: {
-    params: Promise<{ slug: string }>
+    params: { slug: string }
 }) {
 
     const { slug } = await params
@@ -89,6 +106,32 @@ export default async function BlogPage({
                 </Link>
 
             </div>
+
+            {/* BLOG STRUCTURED DATA */}
+
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{
+                    __html: JSON.stringify({
+                        "@context": "https://schema.org",
+                        "@type": "Article",
+                        "headline": keyword,
+                        "description": `Guide about ${keyword} and social media strategies.`,
+                        "author": {
+                            "@type": "Organization",
+                            "name": "AI Social Generator"
+                        },
+                        "publisher": {
+                            "@type": "Organization",
+                            "name": "AI Social Generator"
+                        },
+                        "mainEntityOfPage": {
+                            "@type": "WebPage",
+                            "@id": `https://ai-social-generator-omega.vercel.app/blog/${slug}`
+                        }
+                    })
+                }}
+            />
 
         </main>
 

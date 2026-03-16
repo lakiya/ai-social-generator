@@ -8,6 +8,7 @@ export default function robots(): MetadataRoute.Robots {
                 allow: "/"
             }
         ],
-        sitemap: "https://ai-social-generator-omega.vercel.app/sitemap.xml"
+        sitemap: "https://ai-social-generator-omega.vercel.app/sitemap.xml",
+        host: "https://ai-social-generator-omega.vercel.app"
     }
 }

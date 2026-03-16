@@ -96,10 +96,13 @@ export default function Home() {
 
       const formatted =
         data.post
-          .replace(/HOOK:/, "🔥 HOOK:")
-          .replace(/CAPTION:/, "✍️ CAPTION:")
-          .replace(/CTA:/, "📣 CTA:")
-          .replace(/HASHTAGS:/, "#️⃣ HASHTAGS:")
+          .replace(/POST 1/g, "✨ POST 1")
+          .replace(/POST 2/g, "🚀 POST 2")
+          .replace(/POST 3/g, "🔥 POST 3")
+          .replace(/HOOK:/g, "🔥 HOOK:")
+          .replace(/CAPTION:/g, "✍️ CAPTION:")
+          .replace(/CTA:/g, "📣 CTA:")
+          .replace(/HASHTAGS:/g, "#️⃣ HASHTAGS:")
 
       setResult(formatted)
 
@@ -235,7 +238,27 @@ export default function Home() {
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
               />
+              <div className="flex flex-wrap gap-2 mb-6">
 
+                {[
+                  "Instagram post about fitness motivation",
+                  "LinkedIn post about startup lessons",
+                  "Twitter post about productivity tips",
+                  "TikTok caption for morning routine",
+                  "Facebook post about personal growth"
+                ].map((example) => (
+
+                  <button
+                    key={example}
+                    onClick={() => setTopic(example)}
+                    className="text-xs px-3 py-2 bg-white/10 border border-white/20 rounded-lg hover:bg-white/20 transition"
+                  >
+                    {example}
+                  </button>
+
+                ))}
+
+              </div>
               <div className="flex flex-wrap gap-2 mb-4">
 
                 {platforms.map(p => {

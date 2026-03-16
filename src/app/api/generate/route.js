@@ -98,30 +98,64 @@ export async function POST(req) {
 You are a world-class social media growth expert.
 
 Platform: ${platform}
-
 Topic: ${topic}
 
-Create a HIGHLY VIRAL social media post.
+Create 3 different HIGHLY VIRAL social media posts.
 
-Use:
-- curiosity
-- emotional triggers
-- short sentences
-- strong hook
-
-Return EXACTLY this format:
+Each post should include:
 
 HOOK:
-<scroll stopping hook>
+scroll stopping hook
 
 CAPTION:
-<engaging caption>
+engaging caption
 
 CTA:
-<comment trigger>
+call to action
 
 HASHTAGS:
-<5 relevant hashtags>
+5 relevant hashtags
+
+Return the result exactly like this:
+
+POST 1
+HOOK:
+...
+
+CAPTION:
+...
+
+CTA:
+...
+
+HASHTAGS:
+...
+
+POST 2
+HOOK:
+...
+
+CAPTION:
+...
+
+CTA:
+...
+
+HASHTAGS:
+...
+
+POST 3
+HOOK:
+...
+
+CAPTION:
+...
+
+CTA:
+...
+
+HASHTAGS:
+...
 `
 
         const completion = await ai.chat.completions.create({
