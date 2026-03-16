@@ -23,6 +23,27 @@ const ratelimit = new Ratelimit({
     limiter: Ratelimit.slidingWindow(10, "1 m")
 })
 
+async function saveUserPost(user_id, topic, platform, content) {
+
+    if (!user_id) return
+
+    try {
+
+        await supabase.from("posts").insert({
+            user_id,
+            topic,
+            platform,
+            content
+        })
+
+    } catch (err) {
+
+        console.error("Failed to save user post", err)
+
+    }
+
+}
+
 export async function POST(req) {
 
     try {
@@ -31,11 +52,11 @@ export async function POST(req) {
 
         const body = await req.json()
 
-        const topic = body.topic?.trim()
+        const topicRaw = body.topic?.trim()
         const platform = body.platform?.trim()
         const user_id = body.user_id || null
 
-        if (!topic) {
+        if (!topicRaw) {
             return Response.json(
                 { error: "Please enter a topic." },
                 { status: 400 }
@@ -49,6 +70,8 @@ export async function POST(req) {
             )
         }
 
+        const topic = topicRaw.toLowerCase()
+
         const identifier = user_id || ip
 
         const { success } = await ratelimit.limit(identifier)
@@ -60,12 +83,15 @@ export async function POST(req) {
             )
         }
 
-        const cacheKey = `post:${platform}:${topic.toLowerCase()}`
+        const cacheKey = `post:${platform}:${topic}`
 
-        // FAST CACHE CHECK
+        // ---------- REDIS CACHE ----------
+
         const cached = await redis.get(cacheKey)
 
         if (cached) {
+
+            await saveUserPost(user_id, topic, platform, cached)
 
             return Response.json({
                 post: cached,
@@ -74,7 +100,8 @@ export async function POST(req) {
 
         }
 
-        // SECONDARY CACHE (DATABASE)
+        // ---------- DATABASE CACHE ----------
+
         const { data: dbCache } = await supabase
             .from("ai_cache")
             .select("result")
@@ -87,12 +114,16 @@ export async function POST(req) {
 
             await redis.set(cacheKey, dbCache.result, { ex: 3600 })
 
+            await saveUserPost(user_id, topic, platform, dbCache.result)
+
             return Response.json({
                 post: dbCache.result,
                 cached: true
             })
 
         }
+
+        // ---------- AI GENERATION ----------
 
         const prompt = `
 You are a world-class social media growth expert.
@@ -171,8 +202,11 @@ HASHTAGS:
 
         const result = completion.choices[0].message.content
 
-        // SAVE CACHE
+        // ---------- SAVE REDIS CACHE ----------
+
         await redis.set(cacheKey, result, { ex: 3600 })
+
+        // ---------- SAVE DB CACHE ----------
 
         await supabase.from("ai_cache").insert({
             topic,
@@ -180,17 +214,9 @@ HASHTAGS:
             result
         })
 
-        // SAVE USER POST HISTORY
-        if (user_id) {
+        // ---------- SAVE USER HISTORY ----------
 
-            await supabase.from("posts").insert({
-                user_id,
-                topic,
-                platform,
-                content: result
-            })
-
-        }
+        await saveUserPost(user_id, topic, platform, result)
 
         return Response.json({
             post: result,
