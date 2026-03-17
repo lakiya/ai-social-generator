@@ -327,8 +327,8 @@ export default function Home() {
                       key={p.name}
                       onClick={() => setPlatform(p.name)}
                       className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-sm transition ${platform === p.name
-                          ? "bg-indigo-500 text-white border-indigo-500"
-                          : "bg-white/10 border-white/20 hover:bg-white/20"
+                        ? "bg-indigo-500 text-white border-indigo-500"
+                        : "bg-white/10 border-white/20 hover:bg-white/20"
                         }`}
                     >
                       <Icon size={16} />
