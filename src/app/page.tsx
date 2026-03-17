@@ -32,7 +32,6 @@ export default function Home() {
 
   const [user, setUser] = useState<SafeUser | null>(null)
   const [limitReached, setLimitReached] = useState(false)
-
   const [isPro, setIsPro] = useState(false)
 
   const platforms = [
@@ -48,7 +47,6 @@ export default function Home() {
 
     async function initUser() {
 
-      // use session first (no API request)
       const { data } = await supabase.auth.getSession()
 
       let safeUser: SafeUser | null = null
@@ -66,18 +64,13 @@ export default function Home() {
 
       if (!safeUser) return
 
-      const { data: sub, error } = await supabase
+      const { data: sub } = await supabase
         .from("subscriptions")
         .select("status")
         .eq("user_id", safeUser.id)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle()
-
-      if (error) {
-        console.error(error)
-        return
-      }
 
       if (sub && (sub.status === "active" || sub.status === "on_trial")) {
         setIsPro(true)
@@ -212,6 +205,11 @@ export default function Home() {
 
   }
 
+  async function logout() {
+    await supabase.auth.signOut()
+    setUser(null)
+  }
+
   return (
 
     <main className="relative min-h-screen flex items-center justify-center px-6 bg-gradient-to-br from-indigo-950 via-purple-900 to-slate-950">
@@ -242,10 +240,10 @@ export default function Home() {
 
                 {user.email}
 
-                {isPro && <p className="text-yellow-400">PRO</p>}
+                {isPro && <span className="text-yellow-400">PRO</span>}
 
                 <button
-                  onClick={() => supabase.auth.signOut()}
+                  onClick={logout}
                   className="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 transition"
                 >
                   Logout
