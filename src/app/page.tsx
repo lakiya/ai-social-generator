@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useState, useEffect } from "react"
 import { supabase } from "../lib/supabase"
-import type { User } from "@supabase/supabase-js"
+import { getSafeUser, SafeUser } from "../lib/auth"
 import toast from "react-hot-toast"
 
 import { FaTiktok } from "react-icons/fa"
@@ -30,8 +30,10 @@ export default function Home() {
   const [loading, setLoading] = useState(false)
   const [copied, setCopied] = useState(false)
 
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<SafeUser | null>(null)
   const [limitReached, setLimitReached] = useState(false)
+
+  const [isPro, setIsPro] = useState(false)
 
   const platforms = [
     { name: "Instagram", icon: Instagram },
@@ -44,12 +46,60 @@ export default function Home() {
 
   useEffect(() => {
 
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user)
-    })
+    async function initUser() {
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_e, session) => {
-      setUser(session?.user ?? null)
+      // use session first (no API request)
+      const { data } = await supabase.auth.getSession()
+
+      let safeUser: SafeUser | null = null
+
+      if (data.session?.user) {
+        safeUser = {
+          id: data.session.user.id,
+          email: data.session.user.email ?? ""
+        }
+      } else {
+        safeUser = await getSafeUser()
+      }
+
+      setUser(safeUser)
+
+      if (!safeUser) return
+
+      const { data: sub, error } = await supabase
+        .from("subscriptions")
+        .select("status")
+        .eq("user_id", safeUser.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (error) {
+        console.error(error)
+        return
+      }
+
+      if (sub && (sub.status === "active" || sub.status === "on_trial")) {
+        setIsPro(true)
+      } else {
+        setIsPro(false)
+      }
+
+    }
+
+    initUser()
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+
+      if (session?.user) {
+        setUser({
+          id: session.user.id,
+          email: session.user.email ?? ""
+        })
+      } else {
+        setUser(null)
+      }
+
     })
 
     return () => listener.subscription.unsubscribe()
@@ -165,10 +215,12 @@ export default function Home() {
   return (
 
     <main className="relative min-h-screen flex items-center justify-center px-6 bg-gradient-to-br from-indigo-950 via-purple-900 to-slate-950">
+
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-200px] left-[-200px] w-[500px] h-[500px] bg-purple-500/20 blur-[120px] rounded-full"></div>
         <div className="absolute bottom-[-200px] right-[-200px] w-[500px] h-[500px] bg-indigo-500/20 blur-[120px] rounded-full"></div>
       </div>
+
       <div className="w-full max-w-5xl">
 
         {/* HEADER */}
@@ -190,6 +242,8 @@ export default function Home() {
 
                 {user.email}
 
+                {isPro && <p className="text-yellow-400">PRO</p>}
+
                 <button
                   onClick={() => supabase.auth.signOut()}
                   className="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 transition"
@@ -210,12 +264,14 @@ export default function Home() {
 
             )}
 
-            <button
-              onClick={subscribe}
-              className="bg-yellow-400 text-black px-4 py-2 rounded-lg font-semibold hover:bg-yellow-300 transition"
-            >
-              Upgrade 🚀
-            </button>
+            {!isPro && (
+              <button
+                onClick={subscribe}
+                className="bg-yellow-400 text-black px-4 py-2 rounded-lg font-semibold hover:bg-yellow-300 transition"
+              >
+                Upgrade 🚀
+              </button>
+            )}
 
           </div>
 
@@ -238,6 +294,7 @@ export default function Home() {
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
               />
+
               <div className="flex flex-wrap gap-2 mb-6">
 
                 {[
@@ -259,6 +316,7 @@ export default function Home() {
                 ))}
 
               </div>
+
               <div className="flex flex-wrap gap-2 mb-4">
 
                 {platforms.map(p => {
@@ -271,8 +329,8 @@ export default function Home() {
                       key={p.name}
                       onClick={() => setPlatform(p.name)}
                       className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-sm transition ${platform === p.name
-                        ? "bg-indigo-500 text-white border-indigo-500"
-                        : "bg-white/10 border-white/20 hover:bg-white/20"
+                          ? "bg-indigo-500 text-white border-indigo-500"
+                          : "bg-white/10 border-white/20 hover:bg-white/20"
                         }`}
                     >
                       <Icon size={16} />
@@ -314,12 +372,14 @@ export default function Home() {
                       Upgrade to Pro for unlimited posts.
                     </p>
 
-                    <button
-                      onClick={subscribe}
-                      className="bg-indigo-600 text-white px-6 py-3 rounded-lg"
-                    >
-                      Upgrade 🚀
-                    </button>
+                    {!isPro && (
+                      <button
+                        onClick={subscribe}
+                        className="bg-indigo-600 text-white px-6 py-3 rounded-lg"
+                      >
+                        Upgrade 🚀
+                      </button>
+                    )}
 
                   </div>
 
