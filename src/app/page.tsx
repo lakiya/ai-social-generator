@@ -34,6 +34,13 @@ export default function Home() {
   const [limitReached, setLimitReached] = useState(false)
   const [isPro, setIsPro] = useState(false)
 
+  const [showPaywall, setShowPaywall] = useState(false)
+  const [isGuest, setIsGuest] = useState(false)
+
+  const [remaining, setRemaining] = useState<number | null>(null)
+
+  const [randomSuggestions, setRandomSuggestions] = useState<string[]>([])
+
   const platforms = [
     { name: "Instagram", icon: Instagram },
     { name: "Twitter", icon: Twitter },
@@ -41,6 +48,18 @@ export default function Home() {
     { name: "Facebook", icon: Facebook },
     { name: "YouTube", icon: Youtube },
     { name: "Tiktok", icon: FaTiktok }
+  ]
+  const suggestions = [
+    "Instagram post about fitness motivation",
+    "LinkedIn post about startup lessons",
+    "Twitter thread on productivity hacks",
+    "TikTok caption for morning routine",
+    "Facebook post about self growth",
+    "YouTube description for AI tutorial",
+    "Personal branding tips for creators",
+    "How to stay consistent on social media",
+    "Daily habits of successful people",
+    "How I grew from 0 to 10k followers"
   ]
 
   useEffect(() => {
@@ -72,18 +91,15 @@ export default function Home() {
         .limit(1)
         .maybeSingle()
 
-      if (sub && (sub.status === "active" || sub.status === "on_trial")) {
-        setIsPro(true)
-      } else {
-        setIsPro(false)
-      }
+      const isActive =
+        sub?.status === "active" || sub?.status === "on_trial"
 
+      setIsPro(isActive)
     }
 
     initUser()
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-
       if (session?.user) {
         setUser({
           id: session.user.id,
@@ -92,12 +108,37 @@ export default function Home() {
       } else {
         setUser(null)
       }
-
     })
 
     return () => listener.subscription.unsubscribe()
 
   }, [])
+  function pickRandom() {
+    const copy = [...suggestions]
+    const selected: string[] = []
+
+    while (selected.length < 3 && copy.length > 0) {
+      const index = Math.floor(Math.random() * copy.length)
+      selected.push(copy[index])
+      copy.splice(index, 1)
+    }
+
+    setRandomSuggestions(selected)
+  }
+
+  useEffect(() => {
+    pickRandom()
+  }, [])
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!topic) {
+        pickRandom()
+      }
+    }, 8000)
+
+    return () => clearInterval(interval)
+  }, [topic])
 
   async function generatePost() {
 
@@ -127,6 +168,9 @@ export default function Home() {
 
       if (res.status === 403) {
         setLimitReached(true)
+        setIsGuest(!user)
+        setShowPaywall(true)
+        setRemaining(data.remaining ?? null)
         setLoading(false)
         return
       }
@@ -136,6 +180,8 @@ export default function Home() {
         setLoading(false)
         return
       }
+
+      setRemaining(data.remaining ?? null)
 
       const formatted =
         data.post
@@ -148,50 +194,38 @@ export default function Home() {
           .replace(/HASHTAGS:/g, "#️⃣ HASHTAGS:")
 
       setResult(formatted)
-
       typeText(formatted)
 
     } catch {
-
       toast.error("Something went wrong")
-
     }
 
     setLoading(false)
-
   }
 
-  function typeText(text: string) {
+  let typingInterval: NodeJS.Timeout
 
+  function typeText(text: string) {
     let index = 0
     setDisplayText("")
 
-    const interval = setInterval(() => {
+    clearInterval(typingInterval)
 
+    typingInterval = setInterval(() => {
       setDisplayText(prev => prev + (text[index] ?? ""))
-
       index++
-
-      if (index >= text.length) clearInterval(interval)
-
+      if (index >= text.length) clearInterval(typingInterval)
     }, 15)
-
   }
 
   async function copyPost() {
-
     await navigator.clipboard.writeText(result)
-
     toast.success("Copied!")
-
     setCopied(true)
-
     setTimeout(() => setCopied(false), 2000)
-
   }
 
   async function subscribe() {
-
     if (!user) {
       window.location.href = "/login"
       return
@@ -202,7 +236,6 @@ export default function Home() {
       `?checkout[custom][user_id]=${user.id}`
 
     window.location.href = url
-
   }
 
   async function logout() {
@@ -210,19 +243,28 @@ export default function Home() {
     setUser(null)
   }
 
+  function splitPosts(text: string) {
+    const parts = text.split(/✨ POST 1|🚀 POST 2|🔥 POST 3/).filter(Boolean)
+    if (parts.length <= 1) return [text]
+
+    return parts.map((p, i) => {
+      if (i === 0) return "✨ POST 1" + p
+      if (i === 1) return "🚀 POST 2" + p
+      return "🔥 POST 3" + p
+    })
+  }
+
+  const totalLimit = user ? 5 : 2
+  const progress = remaining !== null
+    ? ((totalLimit - remaining) / totalLimit) * 100
+    : 0
+
   return (
-
-    <main className="relative min-h-screen flex items-center justify-center px-6 bg-gradient-to-br from-indigo-950 via-purple-900 to-slate-950">
-
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-200px] left-[-200px] w-[500px] h-[500px] bg-purple-500/20 blur-[120px] rounded-full"></div>
-        <div className="absolute bottom-[-200px] right-[-200px] w-[500px] h-[500px] bg-indigo-500/20 blur-[120px] rounded-full"></div>
-      </div>
+    <main className="min-h-screen flex items-center justify-center px-6 bg-gradient-to-br from-indigo-950 via-purple-900 to-slate-950">
 
       <div className="w-full max-w-5xl">
 
         {/* HEADER */}
-
         <div className="flex justify-between items-center mb-12">
 
           <h1 className="text-2xl font-semibold flex items-center gap-2 text-white">
@@ -231,184 +273,114 @@ export default function Home() {
           </h1>
 
           <div className="flex items-center gap-4">
-
             {user ? (
-
               <div className="flex items-center gap-2 text-sm text-gray-300">
-
                 <UserIcon size={18} />
-
                 {user.email}
-
                 {isPro && <span className="text-yellow-400">PRO</span>}
-
-                <button
-                  onClick={logout}
-                  className="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 transition"
-                >
+                <button onClick={logout} className="px-3 py-1 rounded-lg bg-white/10">
                   Logout
                 </button>
-
               </div>
-
             ) : (
-
-              <Link
-                href="/login"
-                className="text-indigo-300 hover:text-white"
-              >
+              <Link href="/login" className="text-indigo-300">
                 Login
               </Link>
-
             )}
-
-            {!isPro && (
-              <button
-                onClick={subscribe}
-                className="bg-yellow-400 text-black px-4 py-2 rounded-lg font-semibold hover:bg-yellow-300 transition"
-              >
-                Upgrade 🚀
-              </button>
-            )}
-
           </div>
 
         </div>
 
-        {/* MAIN CARD */}
+        {/* MAIN */}
+        <div className="grid lg:grid-cols-2 gap-8">
 
-        <div className="bg-white/10 border border-white/20 backdrop-blur-2xl rounded-3xl p-8 shadow-[0_20px_80px_rgba(0,0,0,0.45)]">
+          {/* INPUT */}
+          <div>
 
-          <div className="grid lg:grid-cols-2 gap-8">
-
-            {/* INPUT */}
-
-            <div>
-
-              <textarea
-                rows={4}
-                className="w-full bg-white/90 text-black p-4 rounded-xl mb-4 focus:outline-none shadow-inner"
-                placeholder="Describe your idea..."
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-              />
-
-              <div className="flex flex-wrap gap-2 mb-6">
-
-                {[
-                  "Instagram post about fitness motivation",
-                  "LinkedIn post about startup lessons",
-                  "Twitter post about productivity tips",
-                  "TikTok caption for morning routine",
-                  "Facebook post about personal growth"
-                ].map((example) => (
-
-                  <button
-                    key={example}
-                    onClick={() => setTopic(example)}
-                    className="text-xs px-3 py-2 bg-white/10 border border-white/20 rounded-lg hover:bg-white/20 transition"
-                  >
-                    {example}
-                  </button>
-
-                ))}
-
-              </div>
-
-              <div className="flex flex-wrap gap-2 mb-4">
-
-                {platforms.map(p => {
-
-                  const Icon = p.icon
-
-                  return (
-
-                    <button
-                      key={p.name}
-                      onClick={() => setPlatform(p.name)}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-sm transition ${platform === p.name
-                        ? "bg-indigo-500 text-white border-indigo-500"
-                        : "bg-white/10 border-white/20 hover:bg-white/20"
-                        }`}
-                    >
-                      <Icon size={16} />
-                      {p.name}
-
-                    </button>
-
-                  )
-
-                })}
-
-              </div>
-
-              <button
-                onClick={generatePost}
-                disabled={loading}
-                className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 hover:opacity-90 text-white p-3 rounded-xl font-semibold transition shadow-lg"
-              >
-                {loading ? "Generating..." : "Generate Post 🚀"}
-              </button>
-
+            <textarea
+              rows={4}
+              className="w-full p-4 rounded-xl mb-4 bg-white/10 text-white placeholder-gray-400 border border-white/20 focus:outline-none focus:ring-2 focus:ring-indigo-400 backdrop-blur-md"
+              placeholder="Describe your idea..."
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+            />
+            <p className="text-xs text-gray-400 mb-2">
+              Try these ideas 👇
+            </p>
+            <div className="flex flex-wrap gap-2 mb-4">
+              {randomSuggestions.map((s, i) => (
+                <button
+                  key={i}
+                  onClick={() => setTopic(s)}
+                  className="text-xs px-3 py-2 bg-white/10 border border-white/20 rounded-lg hover:bg-indigo-500 hover:text-white transition"
+                >
+                  {s}
+                </button>
+              ))}
             </div>
+            {!isPro && remaining !== null && (
+              <div className="mb-4 space-y-2">
 
-            {/* OUTPUT */}
-
-            <div>
-
-              <div className="bg-white text-black rounded-xl p-5 min-h-[220px] shadow-inner border">
-
-                {limitReached ? (
-
-                  <div className="text-center space-y-4">
-
-                    <h3 className="text-xl font-bold">
-                      ⚡ Free limit reached
-                    </h3>
-
-                    <p className="text-gray-600">
-                      Upgrade to Pro for unlimited posts.
-                    </p>
-
-                    {!isPro && (
-                      <button
-                        onClick={subscribe}
-                        className="bg-indigo-600 text-white px-6 py-3 rounded-lg"
-                      >
-                        Upgrade 🚀
-                      </button>
-                    )}
-
-                  </div>
-
-                ) : (
-
-                  <p className="whitespace-pre-line text-sm">
-
-                    {displayText || "Your generated post will appear here..."}
-
-                    {loading && <span className="animate-pulse">|</span>}
-
-                  </p>
-
+                {remaining === 1 && (
+                  <p className="text-xs text-yellow-400">⚡ Last free post today</p>
                 )}
 
-              </div>
-
-              {displayText && !loading && !limitReached && (
-
-                <div className="mt-4">
-
-                  <button
-                    onClick={copyPost}
-                    className="flex items-center gap-2 bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition"
-                  >
-                    <Copy size={16} />
-                    {copied ? "Copied!" : "Copy"}
-                  </button>
-
+                <div className="flex justify-between text-xs text-gray-300">
+                  <span>Daily usage</span>
+                  <span>{remaining} left</span>
                 </div>
 
+                <div className="w-full h-2 bg-white/20 rounded-full">
+                  <div
+                    className="h-full bg-indigo-400"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+
+              </div>
+            )}
+
+            <button
+              onClick={generatePost}
+              disabled={loading || remaining === 0}
+              className="w-full bg-indigo-500 text-white p-3 rounded-xl"
+            >
+              {remaining === 0
+                ? "Upgrade to continue 🚀"
+                : loading
+                  ? "Generating..."
+                  : "Generate Post 🚀"}
+            </button>
+
+          </div>
+
+          {/* OUTPUT */}
+          <div className="bg-white text-black p-5 rounded-xl">
+
+            <div className="space-y-4">
+
+              {displayText ? (
+                splitPosts(displayText).map((post, i) => {
+                  const locked = !isPro && i > 0
+
+                  return (
+                    <div key={i} className={`relative whitespace-pre-line ${locked ? "blur-sm opacity-60 select-none" : ""
+                      }`}>
+                      {post}
+
+                      {locked && (
+                        <button
+                          onClick={() => setShowPaywall(true)}
+                          className="bg-black/70 text-white px-4 py-2 rounded-lg text-xs"
+                        >
+                          🔒 Unlock with Pro
+                        </button>
+                      )}
+                    </div>
+                  )
+                })
+              ) : (
+                <p>Your generated post will appear here...</p>
               )}
 
             </div>
@@ -418,9 +390,6 @@ export default function Home() {
         </div>
 
       </div>
-
     </main>
-
   )
-
 }
