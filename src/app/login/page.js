@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "../../lib/supabase"
+import { useState, useEffect } from "react"
 
 export default function LoginPage() {
     const router = useRouter()
@@ -13,26 +13,45 @@ export default function LoginPage() {
     const [mode, setMode] = useState("login")
     const [message, setMessage] = useState("")
 
+    useEffect(() => {
+        const { data: listener } = supabase.auth.onAuthStateChange(
+            (event, session) => {
+                if (session) {
+                    router.push("/")
+                }
+            }
+        )
+
+        return () => {
+            listener.subscription.unsubscribe()
+        }
+    }, [router])
+
     async function handleSubmit(e) {
+        if (loading) return
         e.preventDefault()
         setLoading(true)
         setMessage("")
 
         try {
             if (mode === "signup") {
+                const siteUrl =
+                    process.env.NEXT_PUBLIC_SITE_URL ||
+                    (typeof window !== "undefined" ? window.location.origin : "")
+
+                const redirectTo = `${siteUrl}/login`
+
                 const { error } = await supabase.auth.signUp({
                     email,
                     password,
                     options: {
-                        emailRedirectTo:
-                            process.env.NEXT_PUBLIC_SITE_URL || "https://ai-social-generator-omega.vercel.app/"
+                        emailRedirectTo: redirectTo
                     }
                 })
-
                 if (error) {
                     setMessage(error.message)
                 } else {
-                    setMessage("Account created. Check your email to confirm your account.")
+                    setMessage("Check your email to confirm. After confirming, you’ll be logged in automatically.")
                 }
             } else {
                 const { error } = await supabase.auth.signInWithPassword({
@@ -44,7 +63,6 @@ export default function LoginPage() {
                     setMessage(error.message)
                 } else {
                     router.push("/")
-                    router.refresh()
                 }
             }
         } catch (error) {

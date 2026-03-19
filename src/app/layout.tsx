@@ -71,6 +71,8 @@ export default function RootLayout({
     `
           }}
         />
+
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4118219263985343" crossOrigin="anonymous"></script>
       </head>
 
       <body className={`${inter.className} bg-[#0f172a] antialiased`}>
@@ -92,6 +94,8 @@ export default function RootLayout({
           <div className="mt-3 space-x-4">
             <a href="/privacy" className="hover:underline">Privacy</a>
             <a href="/terms" className="hover:underline">Terms</a>
+            <a href="/about" className="hover:underline">About</a>
+            <a href="/contact" className="hover:underline">Contact</a>
           </div>
         </footer>
 
