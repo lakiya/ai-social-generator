@@ -6,6 +6,10 @@ function slugify(text: string) {
     return text.replace(/\s+/g, "-").toLowerCase()
 }
 
+function safeSlug(slug?: string) {
+    return slug || "social-media-tips"
+}
+
 export async function generateStaticParams() {
     return blogKeywords.map((keyword) => ({
         slug: slugify(keyword)
@@ -15,29 +19,28 @@ export async function generateStaticParams() {
 export async function generateMetadata({
     params
 }: {
-    params: { slug: string }
+    params: { slug?: string }
 }): Promise<Metadata> {
 
-    const { slug } = params
+    const slug = safeSlug(params?.slug)
     const keyword = slug.replace(/-/g, " ")
 
     return {
         title: `${keyword} (Free Guide + AI Tools)`,
-        description:
-            `Discover ${keyword} and generate better social media content using AI tools.`,
+        description: `Discover ${keyword} and generate better social media content using AI tools.`,
         alternates: {
             canonical: `https://ai-social-generator-omega.vercel.app/blog/${slug}`
         }
     }
 }
 
-export default async function BlogPage({
+export default function BlogPage({
     params
 }: {
-    params: { slug: string }
+    params: { slug?: string }
 }) {
 
-    const { slug } = params
+    const slug = safeSlug(params?.slug)
     const keyword = slug.replace(/-/g, " ")
 
     return (
@@ -77,7 +80,7 @@ export default async function BlogPage({
                     Generate AI Post
                 </Link>
 
-                {/* 🔥 RELATED TOOLS */}
+                {/* RELATED TOOLS */}
                 <div className="mt-10">
                     <h2 className="text-2xl font-bold">Try AI Tools</h2>
 
@@ -97,13 +100,17 @@ export default async function BlogPage({
                     </div>
                 </div>
 
-                {/* 🔥 RELATED BLOG */}
+                {/* RELATED BLOG */}
                 <div className="mt-10">
                     <h2 className="text-2xl font-bold">Related Articles</h2>
 
                     <div className="grid grid-cols-2 gap-3 mt-4">
                         {blogKeywords.slice(0, 6).map((k) => (
-                            <Link key={k} href={`/blog/${slugify(k)}`} className="underline text-indigo-600">
+                            <Link
+                                key={k}
+                                href={`/blog/${slugify(k)}`}
+                                className="underline text-indigo-600"
+                            >
                                 {k}
                             </Link>
                         ))}
