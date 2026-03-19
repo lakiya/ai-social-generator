@@ -7,11 +7,9 @@ function slugify(text: string) {
 }
 
 export async function generateStaticParams() {
-
     return blogKeywords.map((keyword) => ({
         slug: slugify(keyword)
     }))
-
 }
 
 export async function generateMetadata({
@@ -20,33 +18,17 @@ export async function generateMetadata({
     params: { slug: string }
 }): Promise<Metadata> {
 
-    const { slug } = await params
-
+    const { slug } = params
     const keyword = slug.replace(/-/g, " ")
 
     return {
-        title: `${keyword} | AI Social Media Guide`,
+        title: `${keyword} (Free Guide + AI Tools)`,
         description:
-            `Learn about ${keyword} and how AI can help generate better social media posts.`,
+            `Discover ${keyword} and generate better social media content using AI tools.`,
         alternates: {
             canonical: `https://ai-social-generator-omega.vercel.app/blog/${slug}`
-        },
-        openGraph: {
-            title: `${keyword} | AI Social Media Guide`,
-            description:
-                `Learn about ${keyword} and how AI can help generate better social media posts.`,
-            url: `https://ai-social-generator-omega.vercel.app/blog/${slug}`,
-            type: "article",
-            images: [
-                {
-                    url: "https://ai-social-generator-omega.vercel.app/og.png",
-                    width: 1200,
-                    height: 630
-                }
-            ]
         }
     }
-
 }
 
 export default async function BlogPage({
@@ -55,8 +37,7 @@ export default async function BlogPage({
     params: { slug: string }
 }) {
 
-    const { slug } = await params
-
+    const { slug } = params
     const keyword = slug.replace(/-/g, " ")
 
     return (
@@ -70,14 +51,11 @@ export default async function BlogPage({
                 </h1>
 
                 <p className="text-lg">
-                    If you want to improve your social media engagement,
-                    understanding {keyword} is important.
+                    Learn how to improve your social media strategy using {keyword}.
                 </p>
 
                 <p>
-                    Creating engaging social media content takes time.
-                    AI tools can help generate captions, hooks, and hashtags
-                    automatically based on your topic.
+                    AI tools can help you generate captions, hooks, hashtags and content ideas instantly.
                 </p>
 
                 <h2 className="text-2xl font-bold">
@@ -85,56 +63,55 @@ export default async function BlogPage({
                 </h2>
 
                 <ul className="list-disc ml-6 space-y-2">
-
-                    <li>Use strong hooks to grab attention</li>
-                    <li>Keep captions clear and engaging</li>
-                    <li>Include relevant hashtags</li>
-                    <li>Encourage interaction with a call to action</li>
-
+                    <li>Use strong hooks</li>
+                    <li>Keep captions engaging</li>
+                    <li>Add relevant hashtags</li>
+                    <li>Include a call to action</li>
                 </ul>
 
-                <p>
-                    If you want to generate posts instantly,
-                    try our AI social media generator.
-                </p>
-
+                {/* CTA */}
                 <Link
                     href="/"
                     className="inline-block mt-6 bg-indigo-600 text-white px-6 py-3 rounded-lg"
                 >
-                    Generate Social Media Post
+                    Generate AI Post
                 </Link>
+
+                {/* 🔥 RELATED TOOLS */}
+                <div className="mt-10">
+                    <h2 className="text-2xl font-bold">Try AI Tools</h2>
+
+                    <div className="grid grid-cols-2 gap-3 mt-4">
+                        <Link href="/generator/ai-instagram-caption-generator" className="underline text-indigo-600">
+                            AI Instagram Caption Generator
+                        </Link>
+                        <Link href="/generator/ai-twitter-post-generator" className="underline text-indigo-600">
+                            AI Twitter Post Generator
+                        </Link>
+                        <Link href="/generator/ai-linkedin-post-generator" className="underline text-indigo-600">
+                            AI LinkedIn Post Generator
+                        </Link>
+                        <Link href="/generator/ai-tiktok-caption-generator" className="underline text-indigo-600">
+                            AI TikTok Caption Generator
+                        </Link>
+                    </div>
+                </div>
+
+                {/* 🔥 RELATED BLOG */}
+                <div className="mt-10">
+                    <h2 className="text-2xl font-bold">Related Articles</h2>
+
+                    <div className="grid grid-cols-2 gap-3 mt-4">
+                        {blogKeywords.slice(0, 6).map((k) => (
+                            <Link key={k} href={`/blog/${slugify(k)}`} className="underline text-indigo-600">
+                                {k}
+                            </Link>
+                        ))}
+                    </div>
+                </div>
 
             </div>
 
-            {/* BLOG STRUCTURED DATA */}
-
-            <script
-                type="application/ld+json"
-                dangerouslySetInnerHTML={{
-                    __html: JSON.stringify({
-                        "@context": "https://schema.org",
-                        "@type": "Article",
-                        "headline": keyword,
-                        "description": `Guide about ${keyword} and social media strategies.`,
-                        "author": {
-                            "@type": "Organization",
-                            "name": "AI Social Generator"
-                        },
-                        "publisher": {
-                            "@type": "Organization",
-                            "name": "AI Social Generator"
-                        },
-                        "mainEntityOfPage": {
-                            "@type": "WebPage",
-                            "@id": `https://ai-social-generator-omega.vercel.app/blog/${slug}`
-                        }
-                    })
-                }}
-            />
-
         </main>
-
     )
-
 }

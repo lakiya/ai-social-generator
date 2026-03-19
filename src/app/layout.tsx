@@ -2,29 +2,39 @@ import type { Metadata } from "next"
 import "./globals.css"
 import { Toaster } from "react-hot-toast"
 import { Inter } from "next/font/google"
+import Script from "next/script"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import { Analytics } from "@vercel/analytics/next"
+
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://ai-social-generator-omega.vercel.app"),
 
-  title: "AI Social Media Post Generator",
+  title: {
+    default: "Free AI Social Media Post Generator (Captions, Hashtags & Ideas)",
+    template: "%s | AI Social Generator"
+  },
+
   description:
-    "Generate viral Instagram, Twitter and LinkedIn posts instantly with AI. Free social media post generator.",
+    "Generate viral social media posts, captions, hashtags and content ideas instantly using AI. Free and optimized for engagement.",
 
   keywords: [
     "AI social media generator",
-    "AI Instagram caption generator",
-    "AI Twitter post generator",
-    "AI LinkedIn post generator",
-    "AI hashtag generator"
+    "AI caption generator",
+    "AI hashtag generator",
+    "AI post generator",
+    "free AI tools"
   ],
 
+  robots: {
+    index: true,
+    follow: true
+  },
+
   openGraph: {
-    title: "AI Social Media Post Generator",
-    description:
-      "Generate viral social media posts instantly using AI.",
+    title: "AI Social Generator",
+    description: "Generate viral social media posts instantly using AI.",
     url: "/",
     siteName: "AI Social Generator",
     images: [
@@ -35,72 +45,60 @@ export const metadata: Metadata = {
       }
     ],
     type: "website"
-  },
-
-  twitter: {
-    card: "summary_large_image",
-    title: "AI Social Media Post Generator",
-    description:
-      "Generate viral social media posts instantly using AI.",
-    images: ["/og.png"]
-  },
-
-  verification: {
-    google: "VIAsV40DIY1ShmZLM0AJxwblTVMM5S4qCxm1zHM0sEQ"
   }
 }
 
-export default function RootLayout({
-  children
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-
     <html lang="en">
       <head>
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-99VMQH8683"></script>
 
-        <script
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-99VMQH8683"
+          strategy="afterInteractive"
+        />
+
+        <Script
+          id="ga"
+          strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: `
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-99VMQH8683');
-    `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'G-99VMQH8683');
+            `
           }}
         />
 
-        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4118219263985343" crossOrigin="anonymous"></script>
+        <Script
+          async
+          strategy="afterInteractive"
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4118219263985343"
+          crossOrigin="anonymous"
+        />
+
       </head>
 
       <body className={`${inter.className} bg-[#0f172a] antialiased`}>
-        <SpeedInsights /> <Analytics />
+        <SpeedInsights />
+        <Analytics />
+
         {children}
 
         <Toaster position="top-center" />
 
-        {/* Footer must be INSIDE body */}
         <footer className="text-center text-gray-400 text-sm py-10">
+          <p>© {new Date().getFullYear()} AI Social Generator</p>
 
-          <p>
-            © {new Date().getFullYear()} AI Social Generator
-          </p>
-
-          <p className="mt-2">
-            Generate viral social media posts instantly with AI.
-          </p>
           <div className="mt-3 space-x-4">
-            <a href="/privacy" className="hover:underline">Privacy</a>
-            <a href="/terms" className="hover:underline">Terms</a>
-            <a href="/about" className="hover:underline">About</a>
-            <a href="/contact" className="hover:underline">Contact</a>
+            <a href="/privacy">Privacy</a>
+            <a href="/terms">Terms</a>
+            <a href="/about">About</a>
+            <a href="/contact">Contact</a>
           </div>
         </footer>
-
       </body>
-
     </html>
   )
 }
